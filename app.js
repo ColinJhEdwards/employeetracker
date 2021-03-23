@@ -220,13 +220,152 @@ function addEmployee() {
 }
 
 function removeEmployee() {
-  console.log("Works");
+  let query = "SELECT employee.id, employee.first_name, employee.last_name ";
+  query += "FROM employee ";
+  connection.query(query, function (err, results) {
+    if (err) throw err;
+    inquirer
+      .prompt([
+        {
+          name: "choice",
+          type: "rawlist",
+          message: "Which employee would you like to delete?",
+          choices: function () {
+            let choiceArray = [];
+            for (let i = 1; i < results.length; i++) {
+              let emp = " ";
+              emp = `${results[i].id} ${results[i].first_name} ${results[i].last_name}`;
+              choiceArray.push(emp);
+            }
+            return choiceArray;
+          },
+        },
+      ])
+      .then(function (answer) {
+        deleteRemovedEmp(answer);
+        return answer;
+      });
+  });
   promptUser();
 }
 
+function deleteRemovedEmp(answer) {
+  let choiceStr = answer.choice.split(" ");
+  connection.query(
+    "DELETE FROM employee WHERE ?",
+    [
+      {
+        id: parseInt(choiceStr[0]),
+      },
+    ],
+    function (error, res) {
+      if (error) throw error;
+      console.log(res.affectedRows + " You DELETED the Employee!");
+      promptUser();
+    }
+  );
+}
+
 function updateEmployee() {
-  console.log("Works");
-  promptUser();
+  let query =
+    "SELECT employee.id, employee.first_name, employee.last_name, department.dept_name, employee.roles_id, roles.title ";
+  query += "FROM employee ";
+  query += "INNER JOIN department ON employee.emp_dept = department.dept_name ";
+  query += "INNER JOIN roles ON department.id = roles.department_id ";
+
+  connection.query(query, function (err, results) {
+    if (err) throw err;
+
+    inquirer
+      .prompt([
+        {
+          name: "choice",
+          type: "rawlist",
+          message: "Which employee's role would you like to update?",
+          choices: function () {
+            let choiceArray = [];
+            for (let i = 1; i < results.length; i++) {
+              let emp = "";
+              emp = `${results[i].id} ${results[i].first_name} ${results[i].last_name} ${results[i].dept_name} ${results[i].roles_id} ${results[i].title}`;
+              choiceArray.push(emp);
+            }
+            return choiceArray;
+          },
+        },
+        {
+          name: "roleUpdate",
+          type: "list",
+          message:
+            "What role would you like to update this employee's role to?",
+          choices: [
+            "Talent Management",
+            "Collections Agent",
+            "Merchandise Specialist",
+            "Chef",
+            "Marketing Director",
+          ],
+        },
+      ])
+      .then(function (answer) {
+        updateToChosenRole(answer);
+        return answer;
+      });
+  });
+}
+
+function updateToChosenRole(answer) {
+  newRoleId = "";
+  newDept = "";
+  newMgr = "";
+
+  if (answer.roleUpdate === "Talent Management") {
+    newRoleId = 2;
+    newDept = "Human Resources";
+    newMgr = 1;
+  }
+  if (answer.roleUpdate === "Collections Agent") {
+    newRoleId = 3;
+    newDept = "Finances";
+    newMgr = 3;
+  }
+  if (answer.roleUpdate === "Merchandise Specialist") {
+    newRoleId = 4;
+    newDept = "Production & Inventory";
+    newMgr = 6;
+  }
+  if (answer.roleUpdate === "Chef") {
+    newRoleId = 5;
+    newDept = "Cafeteria & Catering";
+    newMgr = 1;
+  }
+  if (answer.roleUpdate === "Marketing Director") {
+    newRoleId = 6;
+    newDept = "Marketing & Advertisement";
+    newMgr = 1;
+  }
+
+  let choiceStr = answer.choice.split(" ");
+  console.log(answer);
+  console.log(choiceStr[0]);
+
+  connection.query(
+    "UPDATE employee SET ? WHERE ?",
+    [
+      {
+        roles_id: newRoleId,
+        emp_dept: newDept,
+        manager_id: newMgr,
+      },
+      {
+        id: parseInt(choiceStr[0]),
+      },
+    ],
+    function (error, res) {
+      if (error) throw error;
+      console.log(res.affectedRows + " You UPDATED the Employee's Role!");
+      promptUser();
+    }
+  );
 }
 
 function exitApp() {
